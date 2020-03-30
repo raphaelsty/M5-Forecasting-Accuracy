@@ -1,4 +1,4 @@
-.csv
-.icloud
-.DS_Store
-.pickle
+*.csv
+*.icloud
+*.DS_Store
+*.pickle
