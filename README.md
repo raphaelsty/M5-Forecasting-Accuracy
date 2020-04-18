@@ -281,7 +281,7 @@ import requests
 r = requests.post('http://localhost:5000/api/init', json= {'flavor': 'regression'})
 ```
 
-After initializing the whipped cream API, I upload all the templates I've pre-trained. Each model has a name. This name is composed of the product and store ID. I use dill to serialize the model before uploading it to my API.
+After initializing the Chantilly API, I upload all the templates I've pre-trained. Each model has a name. This name is composed of the product and store ID. I use dill to serialize the model before uploading it to my API.
 
 ```python
 import dill
