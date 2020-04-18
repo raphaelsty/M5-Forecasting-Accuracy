@@ -207,7 +207,7 @@ I have chosen to create one template per product and per store. The piece of cod
 ```python
 list_model = []
 
-X_y = stream.iter_csv('./submissions/sample_submission.csv', target_name='F8')
+X_y = stream.iter_csv('./data/sample_submission.csv', target_name='F8')
 
 for x, y in tqdm.tqdm(X_y, position=0):
     
