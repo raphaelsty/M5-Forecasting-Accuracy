@@ -94,7 +94,7 @@ In this kernel, I am going to make a tutorial to show how to deploy in productio
 As usual, during the prototyping phase, I define the validation process and the metrics used to evaluate the quality of the model I develop. Online learning allow to do **progressive validation** which is the online counterpart of cross-validation. The progressive validation allows to take into account the temporality of the problem. For reasons of simplicity I chose to use the MAE metric to evaluate the quality of my model.
 
 
-After a few tries on my side, **I chose to train a ``KNNRegressor`` model per product and per store** to predict the number of sales. It represent approximatively 39.000 models. All the models provides correct results with the progressive validation method. When I predict the next day's sales for a given product and store the average MAE of my models is 0.98.
+After a few tries on my side, **I chose to train a ``KNNRegressor`` model per product and per store** to predict the number of sales. It represent approximatively 30490 models. All the models provides correct results with the progressive validation method. When I predict the next day's sales for a given product and store the average MAE of my models is 0.98.
 
 I chose to use as features for each model:
 
@@ -139,7 +139,7 @@ I use this first function to parse the date and extract the number of the day.
 ```python
 def extract_date(x):
     """Extract features from the date."""
-    import datetime as dt
+    import datetime
     if not isinstance(x['date'], datetime.datetime):
         x['date'] = datetime.datetime.strptime(x['date'], '%Y-%m-%d')
     x['wday'] = x['date'].weekday()
@@ -161,7 +161,7 @@ Below I define the feature extraction pipeline. I use the module ``feature_extra
 
 ```python
 extract_features = compose.TransformerUnion(
-    compose.select('wday'),
+    compose.Select('wday'),
     
     feature_extraction.TargetAgg(by=['item_id'], how=stats.Mean()),
     feature_extraction.TargetAgg(by=['item_id'], how=stats.Var()),
@@ -278,7 +278,7 @@ I'm going to associate the regression flavor with the Chantilly API. Chantilly u
 ```python
 import requests
 
-requests.post('http://localhost:5000/api/init', json= {'flavor': 'regression'})
+r = requests.post('http://localhost:5000/api/init', json= {'flavor': 'regression'})
 ```
 
 After initializing the whipped cream API, I upload all the templates I've pre-trained. Each model has a name. This name is composed of the product and store ID. I use dill to serialize the model before uploading it to my API.
@@ -286,7 +286,8 @@ After initializing the whipped cream API, I upload all the templates I've pre-tr
 ```python
 import dill
 
-for model_name, model in dict_models.items()
+for model_name, model in dic_models.items():
+    
     r = requests.post('http://localhost:5000/api/model/{}'.format(model_name), data=dill.dumps(model))
     
 ```
@@ -296,3 +297,27 @@ All the models are now deployed in production and available to make predictions.
 ![](images/online_learning.png)
 
 **As you may have noticed, the philosophy of online learning allows to reduce the complexity of the deployment of a machine learning algorithm in production. Moreover, to update the model, we only have to make calls to the API. We don't need to re-train the model from scratch.**
+
+#### Make a prediction by calling the API:
+
+```python
+json = {
+    'id': 1,
+    'model': 'HOBBIES_1_001_CA_1',
+    'features': {'date': '2020-04-30', 'id': 'HOBBIES_1_001_CA_1'}
+}
+
+r = requests.post('http://localhost:5000/api/predict', json=json)
+
+prediction = r.json()
+```
+
+#### Update models with new data:
+
+```python
+r = requests.post('http://localhost:5000/api/learn', json={
+    'id': 1,
+    'model': 'HOBBIES_1_001_CA_1',
+    'ground_truth': 2,
+})
+```
