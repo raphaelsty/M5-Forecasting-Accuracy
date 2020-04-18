@@ -10,7 +10,7 @@ First of all, I would like to share with you the deployment process I follow whe
 
 I will then compare this process to **deploying a model** with the Creme and Chantilly libraries.
 
-The main developper of Creme (Max Halford) did a blog post **[here](https://towardsdatascience.com/machine-learning-for-streaming-data-with-creme-dacf5fb469df)**. This is a good introduction to the philosophy of online learning. Feel free to have a look at it if you are interested in the subject. 
+[Max Halford](https://maxhalford.github.io) is the main developper of Creme and he's the one who initiated the project, he did a blog post **[here](https://towardsdatascience.com/machine-learning-for-streaming-data-with-creme-dacf5fb469df)**. This is a good introduction to the philosophy of online learning and especially Creme philosophy. Feel free to have a look at it if you are interested in the subject. 
 
 <p align="center">
     <img src="images/mats-speicher-FxGoXaib51Q-unsplash.jpg">
