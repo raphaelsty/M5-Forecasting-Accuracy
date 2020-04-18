@@ -321,3 +321,12 @@ r = requests.post('http://localhost:5000/api/learn', json={
     'ground_truth': 2,
 })
 ```
+
+Feel free to visit the [Chantilly](https://github.com/creme-ml/chantilly) github  for more details on the API features.
+
+--
+
+
+Thank you for reading me. 
+
+Raphaël Sourty, Creme developper.
