@@ -13,7 +13,7 @@ I will then compare this process to **deploying a model** with the Creme and Cha
 [Max Halford](https://maxhalford.github.io) is the main developper of Creme and he's the one who initiated the project, he did a blog post **[here](https://towardsdatascience.com/machine-learning-for-streaming-data-with-creme-dacf5fb469df)**. This is a good introduction to the philosophy of online learning and especially Creme philosophy. Feel free to have a look at it if you are interested in the subject. 
 
 <p align="center">
-    <img src="images/mats-speicher-FxGoXaib51Q-unsplash.jpg">
+    <img src="static/mats-speicher-FxGoXaib51Q-unsplash.jpg">
 </p>
 
 <b>
@@ -61,7 +61,7 @@ The development phase should lead to the creation of different modules:
 
 - **module 3:** Script dedicated to the serialization of the model. It is important to redefine the model prediction method before serializing the model. Libraries like Scikit-Learn do not develop models so that they can quickly make predictions for a single observation. You can find more information [here](https://maxhalford.github.io/blog/speeding-up-sklearn-single-predictions/). The [sklearn-onnx](https://github.com/onnx/sklearn-onnx) library is an interesting solution to this problem. I already used [treelite](https://github.com/dmlc/treelite) and this is suitable alternative for LightGBM.
 
-![](images/offline.png)
+![](static/offline.png)
 
 **Online:**
 
@@ -71,7 +71,7 @@ The development phase should lead to the creation of different modules:
 
 - **Module 5**: API definition. When a call is made, the API must load the serialized model, calculate the features using module 4 and make a prediction. The model could also be loaded into memory at API startup.
 
-![](images/online.png)
+![](static/online.png)
 
 **Tests:**
 
@@ -94,17 +94,17 @@ In this kernel, I am going to make a tutorial to show how to deploy in productio
 As usual, during the prototyping phase, I define the validation process and the metrics used to evaluate the quality of the model I develop. Online learning allow to do **progressive validation** which is the online counterpart of cross-validation. The progressive validation allows to take into account the temporality of the problem. For reasons of simplicity I chose to use the MAE metric to evaluate the quality of my model.
 
 
-After a few tries on my side, **I chose to train a ``KNNRegressor`` model per product and per store** to predict the number of sales. It represent approximatively 30490 models. All the models provides correct results with the progressive validation method. When I predict the next day's sales for a given product and store the average MAE of my models is 0.98.
+After a few tries on my side, **I chose to train a ``KNNRegressor`` model per product** to predict the number of sales. It represent approximatively 3049 models. All the models provides correct results with the progressive validation method. I train my models to predict sales 7 days in advance.
 
 I chose to use as features for each model:
 
-- Global mean
+- Global mean per store.
 
-- Global variance
+- Global variance per store.
 
-- Average sales for the last 1, 3, 7, 15, 30 days.
+- Average sales for the last 1, 3, 7, 15, 30 days per store.
 
-- Average of the sales of the realized according to the day, ie {Monday, Tuesday, ..Sunday} with a lag of 1, 3, 7, 15, 30 days.
+- Average of the sales per score according to the day, ie {Monday, Tuesday, ..Sunday} with a lag of 1, 3, 7, 15, 30 days.
 
 #### Engineering
 
@@ -151,9 +151,8 @@ def extract_date(x):
 ```python
 def get_metadata(x):
     key = x['id'].split('_')
-    x['cat_id'] = f'{key[0]}'
-    x['dept_id'] = f'{x["cat_id"]}_{key[1]}'
-    x['item_id'] = f'{x["cat_id"]}_{x["dept_id"]}_{key[2]}'
+    x['store_id'] = f'{key[3]}_{key[4]}'
+    x['item_id'] = f'{key[0]}_{key[1]}_{key[2]}'
     return x
 ```
 
@@ -163,20 +162,20 @@ Below I define the feature extraction pipeline. I use the module ``feature_extra
 extract_features = compose.TransformerUnion(
     compose.Select('wday'),
     
-    feature_extraction.TargetAgg(by=['item_id'], how=stats.Mean()),
-    feature_extraction.TargetAgg(by=['item_id'], how=stats.Var()),
+    feature_extraction.TargetAgg(by=['store_id'], how=stats.Mean()),
+    feature_extraction.TargetAgg(by=['store_id'], how=stats.Var()),
     
-    feature_extraction.TargetAgg(by=['item_id'], how=stats.RollingMean(1)),
-    feature_extraction.TargetAgg(by=['item_id'], how=stats.RollingMean(30)),
-    feature_extraction.TargetAgg(by=['item_id'], how=stats.RollingMean(15)),
-    feature_extraction.TargetAgg(by=['item_id'], how=stats.RollingMean(7)),
-    feature_extraction.TargetAgg(by=['item_id'], how=stats.RollingMean(3)),
+    feature_extraction.TargetAgg(by=['store_id', 'wday'], how=stats.RollingMean(30)),
+    feature_extraction.TargetAgg(by=['store_id', 'wday'], how=stats.RollingMean(15)),
+    feature_extraction.TargetAgg(by=['store_id', 'wday'], how=stats.RollingMean(7)),
+    feature_extraction.TargetAgg(by=['store_id', 'wday'], how=stats.RollingMean(3)),
+    feature_extraction.TargetAgg(by=['store_id', 'wday'], how=stats.RollingMean(1)),
     
-    feature_extraction.TargetAgg(by=['wday'], how=stats.RollingMean(30)),
-    feature_extraction.TargetAgg(by=['wday'], how=stats.RollingMean(15)),
-    feature_extraction.TargetAgg(by=['wday'], how=stats.RollingMean(7)),
-    feature_extraction.TargetAgg(by=['wday'], how=stats.RollingMean(3)),
-    feature_extraction.TargetAgg(by=['wday'], how=stats.RollingMean(1)),
+    feature_extraction.TargetAgg(by=['store_id'], how=stats.RollingMean(1)),
+    feature_extraction.TargetAgg(by=['store_id'], how=stats.RollingMean(30)),
+    feature_extraction.TargetAgg(by=['store_id'], how=stats.RollingMean(15)),
+    feature_extraction.TargetAgg(by=['store_id'], how=stats.RollingMean(7)),
+    feature_extraction.TargetAgg(by=['store_id'], how=stats.RollingMean(3)),
 )
 ```
 
@@ -202,7 +201,7 @@ model = (
 )
 ```
 
-I have chosen to create one template per product and per store. The piece of code below create a copy of the pipeline for all product/store pairs and store them in a dictionary.
+I have chosen to create one model per product. The piece of code below create a copy of the pipeline for all product and store them in a dictionary.
 
 ```python
 list_model = []
@@ -220,43 +219,43 @@ for x, y in tqdm.tqdm(X_y, position=0):
 dic_models = {item_id: copy.deepcopy(model) for item_id in tqdm.tqdm(list_model, position=0)}
 ```
 
-I make a warm-up of all the models from a subset of the training set. To do this pre-training, I selected the last two months of the training set and saved it in csv format.I use Creme's ``stream.iter_csv`` module to iterate on the training dataset. The pipeline below consumes very little RAM memory because we load the data into the memory one after the other.
+I make a warm-up of all the models from a subset of the training set. To do this pre-training, I selected the last two months of the training set and saved it in csv format.I use Creme's ``stream.iter_csv`` module to iterate on the training dataset. The pipeline below consumes very little RAM memory because we load the data into the memory one after the other. I train my models to predict sales 7 days in advance.
 
 ```python
 random.seed(42)
 
-params = dict(
-    target_name='y', 
-    converters={
-        'y': int, 
-        'id': str,
-    },
-    parse_dates= {'date': '%Y-%m-%d'},
-)
+params = dict(target_name='y', converters={'y': int, 'id': str}, parse_dates= {'date': '%Y-%m-%d'})
 
-X_y = stream.iter_csv('./data/train.csv', **params)
+X_y = stream.simulate_qa(
+    X_y    = stream.iter_csv('./data/train.csv', **params), 
+    moment = 'date', 
+    delay  = datetime.timedelta(days=7)
+)
 
 bar = tqdm.tqdm(X_y, position = 0)
 
-metric = metrics.Rolling(metrics.MAE(), 300000)
+metric = metrics.Rolling(metrics.MAE(), 30490)
 
-for i, (x, y) in enumerate(bar):
+y_pred = {}
+
+for i, x, y in bar:
     
-    item_id = '_'.join(x['id'].split('_')[:5])
-
-    # Predict:
-    y_pred = dic_models[item_id].predict_one(x)
-
-    # Update the model:
-    dic_models[item_id].fit_one(x=x, y=y)
-
-    # Update the metric:
-    metric = metric.update(y, y_pred)
+    item_id  = '_'.join(x['id'].split('_')[:3])
+    store_id = '_'.join(x['id'].split('_')[3:5])
     
-    if i % 4000 == 0:
+    if y:
+        dic_models[f'{item_id}'].fit_one(x=x, y=y)
+        
+        # Update the metric:
+        metric = metric.update(y, y_pred[f'{item_id}_{store_id}'])
+        
+        if i % 1000 == 0:
+            # Update tqdm progress bar.
+            bar.set_description(f'MAE: {metric.get():4f}')
 
-        # Update tqdm progress bar every 4000 iterations.
-        bar.set_description(f'MAE: {metric.get():4f}')
+    else:
+
+        y_pred[f'{item_id}_{store_id}'] = dic_models[f'{item_id}'].predict_one(x)
 ```
 
 #### Deployment of the model:
@@ -264,7 +263,7 @@ for i, (x, y) in enumerate(bar):
 Now that all the models are pre-trained, I will be able to deploy the pipelines behind an API in a production environment. I will use the [Chantilly](https://github.com/creme-ml/chantilly) library to do so.
 
 ```bash
-pip install git+https://github.com/creme-ml/chantilly`
+pip install git+https://github.com/creme-ml/chantilly
 ```
 
 After installing Chantilly, I start the chantilly instance with the bash command:
@@ -294,7 +293,7 @@ for model_name, model in dic_models.items():
 
 All the models are now deployed in production and available to make predictions. The models can also be updated on a daily basis. That's it.
 
-![](images/online_learning.png)
+![](static/online_learning.png)
 
 **As you may have noticed, the philosophy of online learning allows to reduce the complexity of the deployment of a machine learning algorithm in production. Moreover, to update the model, we only have to make calls to the API. We don't need to re-train the model from scratch.**
 
