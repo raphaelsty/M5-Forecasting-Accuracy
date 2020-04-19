@@ -1,1 +1,1 @@
-Chantilly run
+waitress-serve --call 'chantilly:create_app'
