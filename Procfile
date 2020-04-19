@@ -1,1 +1,2 @@
-waitress-serve --call 'chantilly:create_app'
+web: gunicorn fbapp:app
+waitress-serve --call 'app:create_app'
