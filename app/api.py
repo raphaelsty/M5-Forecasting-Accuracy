@@ -310,11 +310,10 @@ def learn():
 @bp.route('/metrics', methods=['GET'])
 def metrics():
     shelf = db.get_shelf()
-    try:
-        metric = {metric.__class__.__name__: metric.get() for metric in shelf['metrics']}
-    except:
-        metric = None
-    return {}
+    if 'metrics' in shelf:
+        return {metric.__class__.__name__: metric.get() for metric in shelf['metrics']}
+    else:
+        return {}
 
 
 @bp.route('/stream/metrics', methods=['GET'])
