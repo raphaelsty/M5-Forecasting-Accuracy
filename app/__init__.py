@@ -72,9 +72,3 @@ def create_app(test_config: dict = None):
 @click.group(cls=flask.cli.FlaskGroup, create_app=create_app)
 def cli_hook():
     """Management script for the chantilly application."""
-
-
-if __name__ == '__main__':
-    app = create_app()
-    # Threaded option to enable multiple instances for multiple user access support
-    app.run(threaded=True, port=5000)
