@@ -127,7 +127,44 @@
             .then(() => this.initCharts())
             .catch(error => console.error(error));
 
+          // Listen for metric updates
+          var metricUpdates = new EventSource("{{ url_for('api.stream_metrics') }}");
+          metricUpdates.onmessage = e => {
+            var metrics = JSON.parse(e.data);
+            this.metrics = metrics;
+            this.metricsUpdateMoment = moment();
+            for (let [name, value] of Object.entries(this.metrics)) {
+              this.charts[name].data.datasets[0].data.push({
+                x: this.metricsUpdateMoment,
+                y: value
+              });
+              this.charts[name].update();
+            }
 
+          };
+
+          // Listen for event updates
+          var eventUpdates = new EventSource("{{ url_for('api.stream_events') }}");
+          eventUpdates.addEventListener('predict', e => {
+            var event = {
+              type: 'predict',
+              data: JSON.parse(e.data),
+              moment: moment(),
+              no: this.eventCounter++
+            };
+            this.events = [event].concat(this.events).slice(0, 10);
+            this.eventsUpdateMoment = moment();
+          })
+          eventUpdates.addEventListener('learn', e => {
+            var event = {
+              type: 'learn',
+              data: JSON.parse(e.data),
+              moment: moment(),
+              no: this.eventCounter++
+            };
+            this.events = [event].concat(this.events).slice(0, 10);
+            this.eventsUpdateMoment = moment();
+          });
         },
         methods: {
           initCharts: function() {
