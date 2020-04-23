@@ -232,9 +232,10 @@ y_pred = {}
 for i, x, y in bar:
     
     item_id  = '_'.join(x['id'].split('_')[:3])
+    
     store_id = '_'.join(x['id'].split('_')[3:5])
     
-    if y:
+    if y != None:
         dic_models[f'{item_id}'].fit_one(x=x, y=y)
         
         # Update the metric:
