@@ -272,7 +272,7 @@ After deploying my Chantilly API on Heroku, I add the regression flavor. Chantil
 ```python
 import requests
 
-r = requests.post('http://localhost:5000/api/init', json= {'flavor': 'regression'})
+r = requests.post('https://kaggle-creme-ml.herokuapp.com/api/init', json= {'flavor': 'regression'})
 ```
 
 After initializing the flavor of my API, I upload all the models I've pre-trained. Each model has a name. This name is the name of the product. I have used dill to serialize the model before uploading it to my API.
@@ -282,8 +282,7 @@ import dill
 
 for model_name, model in dic_models.items():
     
-    r = requests.post('http://localhost:5000/api/model/{}'.format(model_name), data=dill.dumps(model))
-    
+    r = requests.post('https://kaggle-creme-ml.herokuapp.com/api/model/{}'.format(model_name), data=dill.dumps(model))
 ```
 
 All the models are now deployed in production and available to make predictions. The models can also be updated on a daily basis. That's it.
@@ -295,26 +294,25 @@ All the models are now deployed in production and available to make predictions.
 #### Make a prediction by calling the API:
 
 ```python
-json = {
+r = requests.post('https://kaggle-creme-ml.herokuapp.com/api/predict', json={
     'id': 1,
     'model': 'HOBBIES_1_001',
     'features': {'date': '2020-04-30', 'id': 'HOBBIES_1_001_CA_1'}
-}
-
-r = requests.post('http://localhost:5000/api/predict', json=json)
-
-prediction = r.json()
+})
 ```
 
 ```python
->>> print(r.json())
-... {'model': 'HOBBIES_1_001', 'prediction': 1.2808702721361522}
+print(r.json())
+```
+
+```
+{'model': 'HOBBIES_1_001', 'prediction': 1.2808702721361522}
 ```
 
 #### Update models with new data:
 
 ```python
-r = requests.post('http://localhost:5000/api/learn', json={
+r = requests.post('https://kaggle-creme-ml.herokuapp.com/api/learn', json={
     'id': 1,
     'model': 'HOBBIES_1_001',
     'ground_truth': 1,
