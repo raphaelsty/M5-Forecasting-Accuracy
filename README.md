@@ -257,7 +257,7 @@ for i, x, y in bar:
 
 Chantilly is a library currently under development. For various reasons, I choose to extract the files from Chantilly that I'm interested in to realize this project.
 
-I choose to deploy my API on Heroku. To do so I followed the [tutorial](https://stackabuse.com/deploying-a-flask-application-to-heroku/). I choose Heroku because they allow me to run my API with a very modest configuration at a low cost. (This modest configuration increases the response time of my API when there are several users).
+I choose to deploy my API on Heroku. To do so I followed the [tutorial](https://stackabuse.com/deploying-a-flask-application-to-heroku/). I choose Heroku because they allow me to run my API with a very modest configuration at a low cost. (This modest configuration increases the response time of my API when there are several users). With a budget bigger than mine, my API could handle a large volume of requests simultaneously.
 
 The main difficulty I encountered when deploying on Heroku was creating the ``Profile`` file. The ``Procfile`` is used to initialize the API when it is deployed on Heroku.
 
