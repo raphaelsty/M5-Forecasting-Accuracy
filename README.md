@@ -306,6 +306,11 @@ r = requests.post('http://localhost:5000/api/predict', json=json)
 prediction = r.json()
 ```
 
+```python
+>>> print(r.json())
+... {'model': 'HOBBIES_1_001', 'prediction': 1.2808702721361522}
+```
+
 #### Update models with new data:
 
 ```python
