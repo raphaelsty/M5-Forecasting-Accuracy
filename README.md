@@ -1,4 +1,4 @@
-Hi kagglers,
+**Hi kagglers**,
 
 Deploying and maintaining machine learning algorithms in a **production** environment is not an easy task. The **drift** of data over the time tends to degrade the performance of the algorithms because the models are static. Data Scientist **re-train models from scratch** to update them. This task is tedious and monopolizes highly qualified human resources. 
 
@@ -83,11 +83,11 @@ In this kernel, I am going to make a tutorial to show how to deploy in productio
 
 #### Prototyping
 
-As usual, during the prototyping phase, I define the validation process and the metrics used to evaluate the quality of the model I develop. Online learning allows to do **progressive validation** which is the online counterpart of cross-validation. The progressive validation allows to take into account the temporality of the problem. For reasons of simplicity, I chose to use the MAE metric to evaluate the quality of my model.
+As usual, during the prototyping phase, I define the validation process and the metrics used to evaluate the quality of the model I develop. Online learning allows to do **progressive validation** which is the online counterpart of cross-validation. The progressive validation allows to take into account the temporality of the problem. For reasons of simplicity, I choose to use the MAE metric to evaluate the quality of my model.
 
-After a few tries on my side, **I chose to train a ``KNNRegressor`` model per product** to predict the number of sales. It represents 3049 models. All the models provide correct results with the progressive validation method. I train my models to predict sales 7 days in advance.
+After a few tries on my side, **I choose to train a ``KNNRegressor`` model per product** to predict the number of sales. It represents 3049 models. All the models provide correct results with the progressive validation method. I train my models to predict sales 7 days in advance.
 
-I chose to use as features for each model:
+I choose to use as features for each model:
 
 - Global mean per store.
 
@@ -192,7 +192,7 @@ model = (
 )
 ```
 
-I have chosen to create one model per product. The piece of code below creates a copy of the pipeline for all products and store them in a dictionary.
+I have choosen to create one model per product. The piece of code below creates a copy of the pipeline for all products and store them in a dictionary.
 
 ```python
 list_model = []
@@ -255,9 +255,9 @@ for i, x, y in bar:
 
 **[Chantilly](https://github.com/creme-ml/chantilly) is a project that aims to ease train Creme models when they are deployed. Chantilly is a minimalist API based on the Flask framework.** Chantilly allows to make predictions, train models and measure model performance in real time. It gives access to a dashboard.
 
-Chantilly is a library currently under development. For various reasons, I chose to extract the files from Chantilly that I'm interested in to realize this project.
+Chantilly is a library currently under development. For various reasons, I choose to extract the files from Chantilly that I'm interested in to realize this project.
 
-I chose to deploy my API on Heroku. To do so I followed the [tutorial](https://stackabuse.com/deploying-a-flask-application-to-heroku/). I chose Heroku because they allow me to run my API with a very modest configuration at a low cost. (This modest configuration increases the response time of my API when there are several users).
+I choose to deploy my API on Heroku. To do so I followed the [tutorial](https://stackabuse.com/deploying-a-flask-application-to-heroku/). I choose Heroku because they allow me to run my API with a very modest configuration at a low cost. (This modest configuration increases the response time of my API when there are several users).
 
 The main difficulty I encountered when deploying on Heroku was creating the ``Profile`` file. The ``Procfile`` is used to initialize the API when it is deployed on Heroku.
 
