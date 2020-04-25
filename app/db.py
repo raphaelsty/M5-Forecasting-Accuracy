@@ -33,7 +33,7 @@ def drop_db():
 
 
 def set_flavor(flavor: str):
-    drop_db()
+    #drop_db()
 
     try:
         flavor = flavors.allowed_flavors()[flavor]
