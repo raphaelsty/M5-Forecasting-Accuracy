@@ -43,7 +43,7 @@ def set_flavor(flavor: str):
     shelf = get_shelf()
     shelf['flavor'] = flavor
 
-    reset_metrics()
+    #reset_metrics()
 
 
 def reset_metrics():
