@@ -1,1 +1,1 @@
-web: gunicorn -w 4 "app:create_app()"
+web: gunicorn -w 4 "app:create_app({'SHELVE_PATH': './../chantilly.db'})"
