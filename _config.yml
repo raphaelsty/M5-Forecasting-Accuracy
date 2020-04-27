@@ -1,9 +1,2 @@
-theme: jekyll-theme-cayman
+url: "https://kaggle-raphaelsty.github.io"
 markdown: kramdown
-plugins:
-    - jekyll-relative-links
-  relative_links:
-    enabled: true
-    collections: true
-  include:
-    - README.md
