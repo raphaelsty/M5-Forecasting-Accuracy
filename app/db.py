@@ -33,6 +33,7 @@ def drop_db():
 
 
 def set_flavor(flavor: str):
+
     drop_db()
 
     try:

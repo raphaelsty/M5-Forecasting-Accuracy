@@ -39,11 +39,11 @@ def create_app(test_config: dict = None):
     except OSError:
         pass
 
-    # Check here:
     app.teardown_appcontext(db.close_shelf)
     app.cli.add_command(cli.init)
     app.cli.add_command(cli.add_model)
     app.cli.add_command(cli.delete_model)
+
     from . import api
     app.register_blueprint(api.bp)
 
