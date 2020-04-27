@@ -315,7 +315,7 @@ To deploy my API, I followed the following steps:
 
 
 - I went to the repository I cloned and ran the following command to start my API:
-``waitress-serve --call 'app:create_app``.
+``waitress-serve --call 'app:create_app'``.
 
 That's it.
 
