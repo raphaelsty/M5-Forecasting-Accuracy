@@ -1,8 +1,10 @@
-**Hi kagglers**,
+**Hi,**
 
 Deploying and maintaining machine learning algorithms in a **production** environment is not an easy task. The **drift** of data over the time tends to degrade the performance of the algorithms because the models are static. Data Scientist **re-train models from scratch** to update them. This task is tedious and monopolizes highly qualified human resources. 
 
-**I would like to present a solution to these problems**. I will use online learning and the open-source **[Creme](https://github.com/creme)** library (I am a core developer of Creme) to overcome the difficulties of deploying a machine learning model in production. I will illustrate my point with data from the **[M5-Forecasting-Accuracy kaggle competition](https://www.kaggle.com/c/m5-forecasting-accuracy/)** which is well suited to the use case of Creme. 
+**I would like to present a solution to these problems**. I will use online learning and the open-source **[Creme](https://github.com/creme)** library (I am a core developer of Creme) to overcome the difficulties of deploying a machine learning model in production. 
+
+I will illustrate my point with data from the **[M5-Forecasting-Accuracy kaggle competition](https://www.kaggle.com/c/m5-forecasting-accuracy/)** which is well suited to the use case of Creme. **The objective of the M5-Forecasting-Accuracy competition is to estimate the daily sales of 30490 products for the next 28 days.**
 
 My goal is not to develop a competitive model, but to show the simplicity of an online learning model for an event-based dataset such as M5-Forecasting-Accuracy.
 
@@ -85,30 +87,21 @@ In this kernel, I am going to make a tutorial to show how to deploy in productio
 
 As usual, during the prototyping phase, I define the validation process and the metrics used to evaluate the quality of the model I develop. Online learning allows to do **progressive validation** which is the online counterpart of cross-validation. The progressive validation allows to take into account the temporality of the problem. For reasons of simplicity, I choose to use the MAE metric to evaluate the quality of my model.
 
-After a few tries on my side, **I choose to train a ``KNNRegressor`` model per product** to predict the number of sales. It represents 3049 models. All the models provide correct results with the progressive validation method. I train my models to predict sales 7 days in advance.
-
-I choose to use as features for each model:
-
-- Global mean per store.
-
-- Global standard deviation per store.
-
-- Average sales for the last 1, 3, 7, 15, 30 days per store.
-
-- Average of the sales per score according to the day, ie {Monday, Tuesday, ..Sunday} with a lag of 1, 3, 7, 15, 30 days.
+After a few tries on my side, **I choose to train a ``KNNRegressor``  and a ``LinearRegression`` per product** to predict the number of sales. It represents **30490 * 2 models** models. I will choose the best of the two models for each of the products thanks to the validation score. 
 
 #### Engineering
 
-I'll start by installing the Creme library:
+I chose to use the development version of Creme because there is a feature (``Shift``) that I use that is not yet in the public version of Creme. 
 
 ```bash
-pip install creme
+pip install git+https://github.com/creme-ml/creme --upgrade
 ```
 
-I'm importing the packages that I'm going to need:
+I'm importing the packages that I need to train my models
 
 ```python
 import copy
+import collections 
 import datetime
 import random
 import tqdm
@@ -117,8 +110,9 @@ import tqdm
 ```python
 from creme import compose
 from creme import feature_extraction
-from creme import neighbors
+from creme import linear_model
 from creme import metrics
+from creme import neighbors
 from creme import optim
 from creme import preprocessing
 from creme import stats
@@ -137,62 +131,70 @@ def extract_date(x):
     return x
 ```
 
-``get_metadata`` allows you to extract the identifier of the product and the store.
+``get_metadata`` allow me to extract the identifier of the product.
 
 ```python
 def get_metadata(x):
     key = x['id'].split('_')
-    x['store_id'] = f'{key[3]}_{key[4]}'
     x['item_id'] = f'{key[0]}_{key[1]}_{key[2]}'
     return x
 ```
 
-Below I define the feature extraction pipeline. I use the module ``feature_extraction.TargetAgg`` to calculate the features on the target variable of the stream.
+Below I define the feature extraction pipeline. I use the module ``feature_extraction.TargetAgg`` to calculate the features on the target variable of the stream. I calculate rolling features on the target variable. I use the ``Shift`` module to easily compute features with a lag. I calculate rolling averages on the target variable with a lag of about 30 days. I also calculate the rolling average of the target variable as a function of the day.
 
 ```python
 extract_features = compose.TransformerUnion(
     compose.Select('wday'),
     
-    feature_extraction.TargetAgg(by=['store_id'], how=stats.Mean()),
-    feature_extraction.TargetAgg(by=['store_id'], how=stats.Var()),
+    feature_extraction.TargetAgg(by=['item_id'], how=stats.Mean()),
+    feature_extraction.TargetAgg(by=['item_id'], how=stats.Var()),
+
+    feature_extraction.TargetAgg(by=['item_id'], how=stats.RollingMean(1)),
+    feature_extraction.TargetAgg(by=['item_id'], how=stats.RollingMean(3)),
+    feature_extraction.TargetAgg(by=['item_id'], how=stats.RollingMean(7)),
+    feature_extraction.TargetAgg(by=['item_id'], how=stats.RollingMean(15)),
+    feature_extraction.TargetAgg(by=['item_id'], how=stats.RollingMean(20)),
+    feature_extraction.TargetAgg(by=['item_id'], how=stats.RollingMean(30)),
     
-    feature_extraction.TargetAgg(by=['store_id', 'wday'], how=stats.RollingMean(30)),
-    feature_extraction.TargetAgg(by=['store_id', 'wday'], how=stats.RollingMean(15)),
-    feature_extraction.TargetAgg(by=['store_id', 'wday'], how=stats.RollingMean(7)),
-    feature_extraction.TargetAgg(by=['store_id', 'wday'], how=stats.RollingMean(3)),
-    feature_extraction.TargetAgg(by=['store_id', 'wday'], how=stats.RollingMean(1)),
+    feature_extraction.TargetAgg(by=['item_id'], how=stats.Shift(30) | stats.RollingMean(1)),
+    feature_extraction.TargetAgg(by=['item_id'], how=stats.Shift(29) | stats.RollingMean(1)),
+    feature_extraction.TargetAgg(by=['item_id'], how=stats.Shift(28) | stats.RollingMean(1)),
+    feature_extraction.TargetAgg(by=['item_id'], how=stats.Shift(27) | stats.RollingMean(1)),
+    feature_extraction.TargetAgg(by=['item_id'], how=stats.Shift(26) | stats.RollingMean(1)),
     
-    feature_extraction.TargetAgg(by=['store_id'], how=stats.RollingMean(1)),
-    feature_extraction.TargetAgg(by=['store_id'], how=stats.RollingMean(30)),
-    feature_extraction.TargetAgg(by=['store_id'], how=stats.RollingMean(15)),
-    feature_extraction.TargetAgg(by=['store_id'], how=stats.RollingMean(7)),
-    feature_extraction.TargetAgg(by=['store_id'], how=stats.RollingMean(3)),
+    feature_extraction.TargetAgg(by=['wday'], how=stats.RollingMean(1)),
+    feature_extraction.TargetAgg(by=['wday'], how=stats.RollingMean(3)),
+    feature_extraction.TargetAgg(by=['wday'], how=stats.RollingMean(7)),
+    feature_extraction.TargetAgg(by=['wday'], how=stats.RollingMean(15)),
+    feature_extraction.TargetAgg(by=['wday'], how=stats.RollingMean(20)),
+    feature_extraction.TargetAgg(by=['wday'], how=stats.RollingMean(30)),
 )
 ```
 
-Below, I define the global pipeline I want to deploy in production. The pipeline is composed of:
+I will train two models per product, which represents **30490 * 2 models**. The first model with every product is a ``KNeighborsRegressor``. The second is a linear model. I noticed that these two models are complementary. I will select the best of the two models for each product as the model I will deploy in production.
 
-- Extraction of the product identifier.
-
-- Extraction of the day number of the date $\in$ {1, 2, ..7}. 
-
-- Computation of the features.
-
-- Standard scaler that centers and reduces the value of features.
-
-- Model declaration ``neighbors.KNeighborsRegressor``.
+The code below allows me to declare my two pipelines, the first one dedicated to KNN and the second one to the linear model.
 
 ```python
-model = (
+# Init pipeline dedicated to KNN
+knn = (
     compose.FuncTransformer(get_metadata) |
     compose.FuncTransformer(extract_date) |
     extract_features |
-    preprocessing.StandardScaler() |
-    neighbors.KNeighborsRegressor(window_size=30, n_neighbors=15)
+    neighbors.KNeighborsRegressor(window_size=300, n_neighbors=30, p=2)
+)
+
+
+# Init pipeline dedicated to linear model
+lm = (
+    compose.FuncTransformer(get_metadata) |
+    compose.FuncTransformer(extract_date) |
+    extract_features |
+    linear_model.LinearRegression(optimizer=optim.SGD(0.00005), clip_gradient=1, intercept_lr=0.001)
 )
 ```
 
-I have choosen to create one model per product. The piece of code below creates a copy of the pipeline for all products and store them in a dictionary.
+The piece of code below creates a copy of both pipelines for all products and store them in a dictionary.
 
 ```python
 list_model = []
@@ -202,53 +204,82 @@ X_y = stream.iter_csv('./data/sample_submission.csv', target_name='F8')
 for x, y in tqdm.tqdm(X_y, position=0):
     
     item_id = '_'.join(x['id'].split('_')[:5])
-    
+
     if item_id not in list_model:
-    
+
         list_model.append(item_id)
         
-dic_models = {item_id: copy.deepcopy(model) for item_id in tqdm.tqdm(list_model, position=0)}
+dict_knn = {item_id: copy.deepcopy(knn) for item_id in tqdm.tqdm(list_model, position=0)}
+dict_lm  = {item_id: copy.deepcopy(lm) for item_id in tqdm.tqdm(list_model, position=0)}
 ```
 
-I do a warm-up of all the models from a subset of the training set. To do this pre-training, I selected the last two months of the training set and saved it in csv format.I use Creme's ``stream.iter_csv`` module to iterate on the training dataset. The pipeline below consumes very little RAM memory because we load the data into the memory one after the other. I train my models to predict sales 7 days in advance.
+I do a warm-up of all the models from a subset of the training set. To do this pre-training, I selected the last two months of the training set and saved it in csv format. I use Creme's ``stream.iter_csv`` module to iterate on the training dataset. The pipeline below consumes very little RAM memory because we load the data into the memory one after the other.
 
 ```python
 random.seed(42)
 
 params = dict(target_name='y', converters={'y': int, 'id': str}, parse_dates= {'date': '%Y-%m-%d'})
 
-X_y = stream.simulate_qa(
-    X_y    = stream.iter_csv('./data/train.csv', **params), 
-    moment = 'date', 
-    delay  = datetime.timedelta(days=7)
-)
+# Init streaming csv reader
+X_y = stream.iter_csv('./data/train_preprocessed.csv', **params)
 
 bar = tqdm.tqdm(X_y, position = 0)
 
-metric = metrics.Rolling(metrics.MAE(), 30490)
+# Init online metrics:
+metric_knn = collections.defaultdict(lambda: metrics.MAE())
+metric_lm  = collections.defaultdict(lambda: metrics.MAE())
 
-y_pred = {}
-
-for i, x, y in bar:
+for i, (x, y) in enumerate(bar):
     
-    item_id  = '_'.join(x['id'].split('_')[:3])
+    # Extract item id
+    item_id  = '_'.join(x['id'].split('_')[:5])
     
-    store_id = '_'.join(x['id'].split('_')[3:5])
+    # KNN
     
-    if y != None:
-        dic_models[f'{item_id}'].fit_one(x=x, y=y)
-        
-        # Update the metric:
-        metric = metric.update(y, y_pred[f'{item_id}_{store_id}'])
-        
-        if i % 1000 == 0:
-            # Update tqdm progress bar.
-            bar.set_description(f'MAE: {metric.get():4f}')
-
-    else:
-
-        y_pred[f'{item_id}_{store_id}'] = dic_models[f'{item_id}'].predict_one(x)
+    # Evaluate performance of KNN
+    y_pred_knn = dict_knn[f'{item_id}'].predict_one(x)
+    
+    # Update metric of KNN
+    metric_knn[f'{item_id}'].update(y, y_pred_knn)
+    
+    # Fit KNN
+    dict_knn[f'{item_id}'].fit_one(x=x, y=y)
+    
+    # Linear Model
+    
+    # Evaluate performance of linear model
+    y_pred_lm  = dict_lm[f'{item_id}'].predict_one(x)
+    
+    # Update metric of linear model
+    metric_lm[f'{item_id}'].update(y, y_pred_lm)
+    
+    # Train linear model for 10 epochs on each training example
+    for _ in range(10):
+        dict_lm[f'{item_id}'].fit_one(x=x, y=y)
 ```
+
+I select the best model among the knn and the linear model for the 30490 products and save my models:
+
+```python
+models = {}
+
+for item_id in tqdm.tqdm(scores_knn.keys()):
+    
+    score_knn = scores_knn[item_id]
+    
+    score_lm  = scores_lm[item_id]
+    
+    if score_knn < score_lm:
+        models[item_id] = dict_knn[item_id]
+        
+    else:
+        models[item_id] = dict_lm[item_id]
+        
+# Save selected models:
+with open('models.dill', 'wb') as file:
+    dill.dump(models, file)
+```
+
 
 #### Deployment of the model:
 
@@ -256,73 +287,87 @@ for i, x, y in bar:
 
 **[Chantilly](https://github.com/creme-ml/chantilly) is a project that aims to ease train Creme models when they are deployed. Chantilly is a minimalist API based on the Flask framework.** Chantilly allows to make predictions, train models and measure model performance in real time. It gives access to a dashboard.
 
-Chantilly is a library currently under development. For various reasons, I choose to extract the files from Chantilly that I'm interested in to realize this project.
+Chantilly is a library currently under development. For various reasons, I choose to extract the files from Chantilly that I'm interested in to realize this project. I chose to deploy my API with [Digital Ocean](https://www.digitalocean.com). You will be able to find the whole architecture of my API [here](https://github.com/raphaelsty/M5-Forecasting-Accuracy). 
 
-I choose to deploy my API on Heroku. To do so I followed the [tutorial](https://stackabuse.com/deploying-a-flask-application-to-heroku/). I choose Heroku because they allow me to run my API with a very modest configuration at a low cost. (This modest configuration increases the response time of my API when there are several users). With a budget bigger than mine, my API could handle a large volume of requests simultaneously.
 
-The main difficulty I encountered when deploying on Heroku was creating the ``Profile`` file. The ``Procfile`` is used to initialize the API when it is deployed on Heroku.
+To deploy my API, I followed the following steps:
 
-Here is its contents:
 
-```web: gunicorn -w 4 "app:create_app()"```
+- I selected the server on Digital Ocean with the smallest configuration
 
-You will be able to find the whole architecture of my API [here](https://github.com/raphaelsty/M5-Forecasting-Accuracy).
 
-After deploying my Chantilly API on Heroku, I add the regression flavor. Chantilly uses this flavor to select the appropriate metrics (MAE, MSE and SMAPE).
+- Tutorial to initialize my server and firewall [here](https://www.digitalocean.com/community/tutorials/initial-server-setup-with-ubuntu-16-04)
+
+
+- Tutorial to install Anaconda on my server [here](https://www.digitalocean.com/community/tutorials/how-to-install-the-anaconda-python-distribution-on-ubuntu-16-04)
+
+
+- Allow reading on port 8080 to be able to request my API ``sudo ufw allow 8080``
+
+
+- Installation of git ``sudo apt install git``
+
+
+- Clone my API on the server ``git clones https://github.com/raphaelsty/M5-Forecasting-Accuracy.git``
+
+
+- I installed the requirements of my repo ``pip install -r requirements.txt``.
+
+
+- I went to the repository I cloned and ran the following command to start my API:
+``waitress-serve --call 'app:create_app``.
+
+That's it.
+
+I initialize my API with flavor regression (see Chantilly tutorial):
 
 ```python
 import requests
+url = 'http://159.89.191.92:8080'
+```
 
-r = requests.post('https://kaggle-creme-ml.herokuapp.com/api/init', json= {'flavor': 'regression'})
+```python
+requests.post(f'{url}/api/init', json= {'flavor': 'regression'})
 ```
 
 After initializing the flavor of my API, I upload all the models I've pre-trained. Each model has a name. This name is the name of the product. I have used dill to serialize the model before uploading it to my API.
 
 ```python
-import dill
-
-for model_name, model in dic_models.items():
-    
-    r = requests.post('https://kaggle-creme-ml.herokuapp.com/api/model/{}'.format(model_name), data=dill.dumps(model))
+for model_name, model in tqdm.tqdm(models.items(), position=0):
+    r = requests.post(f'{url}/api/model/{model_name}', data=dill.dumps(model))
 ```
 
 All the models are now deployed in production and available to make predictions. The models can also be updated on a daily basis. That's it.
 
 ![](static/online_learning.png)
 
-**As you may have noticed, the philosophy of online learning allows to reduce the complexity of the deployment of a machine learning algorithm in production. Moreover, to update the model, we only have to make calls to the API. We don't need to re-train the model from scratch.**
+**As you may have noticed, the philosophy of online learning allows to reduce the complexity of the deployment of a machine learning algorithm in production. Moreover, to update the model, we only have to make calls to the API. We don't need to re-train the model from scratch.** To maintain my models on a daily basis, I recommend setting up a script that queries the database that stores the sales made that day. This script would perform 30490 queries every day to update all the models.
 
 #### Make a prediction by calling the API:
 
 ```python
-r = requests.post('https://kaggle-creme-ml.herokuapp.com/api/predict', json={
+r = requests.post(f'{url}/api/predict', json={
     'id': 1,
-    'model': 'HOBBIES_1_001',
-    'features': {'date': '2020-04-30', 'id': 'HOBBIES_1_001_CA_1'}
+    'model': 'HOBBIES_1_001_CA_1',
+    'features': {'date': '2016-05-23', 'id': 'HOBBIES_1_001_CA_1'}
 })
-```
-
-```python
-print(r.json())
-```
-
-```
-{'model': 'HOBBIES_1_001', 'prediction': 1.2808702721361522}
 ```
 
 #### Update models with new data:
 
 ```python
-r = requests.post('https://kaggle-creme-ml.herokuapp.com/api/learn', json={
+r = requests.post(f'{url}/api/learn', json={
     'id': 1,
-    'model': 'HOBBIES_1_001',
+    'model': 'HOBBIES_1_001_CA_1',
     'ground_truth': 1,
 })
 ```
-You can execute these requests. I don't recommend that you request my models to blend my predictions to yours. My models are not intended to be competitive. 
 
-If you want my opinion on the competition, I think there's a lot of noise in the data. I haven't observed any particular trends when it comes to day-to-day predictions for all products.
+#### Chantilly dashboard
 
+You can consult the [dashboard](http://159.89.191.92:8080) which is updated in real time and know the performance of your models in live.
+
+![](static/dashboard.png)
 
 Feel free to visit the [Chantilly](https://github.com/creme-ml/chantilly) github for more details on the API features.
 
