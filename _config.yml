@@ -1,10 +1,7 @@
-lsi: false
-safe: true
-source: [M5-Forecasting-Accuracy]
-incremental: false
-highlighter: rouge
-gist:
-  noscript: false
-kramdown:
-  math_engine: mathjax
-  syntax_highlighter: rouge
+plugins:
+    - jekyll-relative-links
+  relative_links:
+    enabled: true
+    collections: true
+  include:
+    - LICENSE.md
