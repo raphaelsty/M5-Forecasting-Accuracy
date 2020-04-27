@@ -4,3 +4,6 @@
 *.pickle
 *.ipynb_checkpoints
 *.pyc
+*.dill
+*.json
+/submissions
