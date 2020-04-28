@@ -1,24 +1,24 @@
 **Hi,**
 
-Deploying and maintaining machine learning algorithms in a **production** environment is not an easy task. The **drift** of data over the time tends to degrade the performance of the algorithms because the models are static. Data Scientist **re-train models from scratch** to update them. This task is tedious and monopolizes highly qualified human resources. 
+Deploying and maintaining machine learning algorithms in a **production** environment is not an easy task. The **drift** of data over the time tends to degrade the performance of the algorithms because the models are static. Data Scientist **re-train models from scratch** to update them. This task is tedious and monopolizes highly qualified human resources.
 
-**I would like to present a solution to these problems**. I will use online learning and the open-source **[Creme](https://github.com/creme)** library (I am a core developer of Creme) to overcome the difficulties of deploying a machine learning model in production. 
+**I would like to present a solution to these problems**. I will use online learning and the open-source **[Creme](https://github.com/creme)** library (I am a core developer of Creme) to overcome the difficulties of deploying a machine learning model in production.
 
 I will illustrate my point with data from the **[M5-Forecasting-Accuracy kaggle competition](https://www.kaggle.com/c/m5-forecasting-accuracy/)** which is well suited to the use case of Creme. **The objective of the M5-Forecasting-Accuracy competition is to estimate the daily sales of 30490 products for the next 28 days.**
 
 My goal is not to develop a competitive model, but to show the simplicity of an online learning model for an event-based dataset such as M5-Forecasting-Accuracy.
 
-First of all, I would like to share with you the deployment process I follow when I need to deploy a machine learning algorithm such as the LightGBM model or scikit-learn models in a production environment for a task similar to the M5-Forecasting-Accuracy competition. 
+First of all, I would like to share with you the deployment process I follow when I need to deploy a machine learning algorithm such as the LightGBM model or scikit-learn models in a production environment for a task similar to the M5-Forecasting-Accuracy competition.
 
 I will then compare this process to **deploying a model** with the Creme and Chantilly libraries.
 
-[Max Halford](https://maxhalford.github.io) is the main developer of Creme and he's the one who initiated the project, he did a blog post **[here](https://towardsdatascience.com/machine-learning-for-streaming-data-with-creme-dacf5fb469df)**. This is a good introduction to the philosophy of online learning and especially Creme philosophy. Feel free to have a look at it if you are interested in the subject. 
+[Max Halford](https://maxhalford.github.io) is the main developer of Creme and he's the one who initiated the project, he did a blog post **[here](https://towardsdatascience.com/machine-learning-for-streaming-data-with-creme-dacf5fb469df)**. This is a good introduction to the philosophy of online learning and especially Creme philosophy. Feel free to have a look at it if you are interested in the subject.
 
 ![](static/creme.svg)
 
 ### Model deployment when fitting data in one row:
 
-Deploying a model that learns by batch requires a well-oiled organization. I describe here the process I followed to deploy this kind of algorithm in production. **I would like to point out that we all had different experiences with deploying algorithms in production.** You may not agree with all of the points I'm making. I invite you to share your view in the comments. 
+Deploying a model that learns by batch requires a well-oiled organization. I describe here the process I followed to deploy this kind of algorithm in production. **I would like to point out that we all had different experiences with deploying algorithms in production.** You may not agree with all of the points I'm making. I invite you to share your view in the comments.
 
 **I distinguish two main steps in the organization of the project when deploying a machine learning algorithm in production:**
 
@@ -30,15 +30,15 @@ Deploying a model that learns by batch requires a well-oiled organization. I des
 
 #### Prototyping:
 
-The first thing to do during the prototyping phase phase is to define a method for evaluating the quality of the model. **Which objective do you want to optimize?** You have to define a validation process now. Usually this is cross-validation. After defining the validation process, the whole point is to find the most suitable model with carefully selected hyperparameters. Without forgetting the feature engineering stage, which is the key to most problems. 
+The first thing to do during the prototyping phase phase is to define a method for evaluating the quality of the model. **Which objective do you want to optimize?** You have to define a validation process now. Usually this is cross-validation. After defining the validation process, the whole point is to find the most suitable model with carefully selected hyperparameters. Without forgetting the feature engineering stage, which is the key to most problems.
 
 The prototyping step is difficult and exciting. We rely on our expertise in the field concerned, our creativity and our scientific culture.
 
 #### Engineering:
 
-It seems interesting to me to choose to deploy the algorithm for predicting product sales behind an API. The API is a practical solution to allow the largest number of users and software to query the trained model. 
+It seems interesting to me to choose to deploy the algorithm for predicting product sales behind an API. The API is a practical solution to allow the largest number of users and software to query the trained model.
 
-During the engineering phase I distinguish two sub-categories modules. The first one is dedicated to the training of the model and its serialization. I call the first set **Offline**. The second one is dedicated to the behavior of the model in the production environment. I call this second part **Online**. I call it "online" because, in my opinion, deploying the model behind an API is an interesting solution here. 
+During the engineering phase I distinguish two sub-categories modules. The first one is dedicated to the training of the model and its serialization. I call the first set **Offline**. The second one is dedicated to the behavior of the model in the production environment. I call this second part **Online**. I call it "online" because, in my opinion, deploying the model behind an API is an interesting solution here.
 
 There is a lot of engineering work to ensure consistency between the offline training part and the online inference part. Any transformations that have been applied to the data during training must be applied to the data during the inference phase. This requires the development of code that is different from the training phase, but which produces the same results.
 
@@ -75,7 +75,7 @@ The development phase should lead to the creation of different modules:
 
 ### Model deployment with Creme and Chantilly
 
-Creme is an online learning library. Creme allows to train machine learning models on data flows. 
+Creme is an online learning library. Creme allows to train machine learning models on data flows.
 
 Each Creme model has a ``fit_one`` method. **The ``fit_one`` method allows to update the model when there is a new observation available** for training. Similar to neural networks, there is no need to re-train the model from scratch when new observations come in.
 
@@ -87,11 +87,11 @@ In this kernel, I am going to make a tutorial to show how to deploy in productio
 
 As usual, during the prototyping phase, I define the validation process and the metrics used to evaluate the quality of the model I develop. Online learning allows to do **progressive validation** which is the online counterpart of cross-validation. The progressive validation allows to take into account the temporality of the problem. For reasons of simplicity, I choose to use the MAE metric to evaluate the quality of my model.
 
-After a few tries on my side, **I choose to train a ``KNNRegressor``  and a ``LinearRegression`` per product** to predict the number of sales. It represents **30490 * 2 models** models. I will choose the best of the two models for each of the products thanks to the validation score. 
+After a few tries on my side, **I choose to train a ``KNNRegressor``  and a ``LinearRegression`` per product** to predict the number of sales. It represents **30490 * 2 models** models. I will choose the best of the two models for each of the products thanks to the validation score.
 
 #### Engineering
 
-I chose to use the development version of Creme because there is a feature (``Shift``) that I use that is not yet in the public version of Creme. 
+I chose to use the development version of Creme because there is a feature (``Shift``) that I use that is not yet in the public version of Creme.
 
 ```bash
 pip install git+https://github.com/creme-ml/creme --upgrade
@@ -101,7 +101,7 @@ I'm importing the packages that I need to train my models
 
 ```python
 import copy
-import collections 
+import collections
 import datetime
 import random
 import tqdm
@@ -145,7 +145,7 @@ Below I define the feature extraction pipeline. I use the module ``feature_extra
 ```python
 extract_features = compose.TransformerUnion(
     compose.Select('wday'),
-    
+
     feature_extraction.TargetAgg(by=['item_id'], how=stats.Mean()),
     feature_extraction.TargetAgg(by=['item_id'], how=stats.Var()),
 
@@ -155,13 +155,13 @@ extract_features = compose.TransformerUnion(
     feature_extraction.TargetAgg(by=['item_id'], how=stats.RollingMean(15)),
     feature_extraction.TargetAgg(by=['item_id'], how=stats.RollingMean(20)),
     feature_extraction.TargetAgg(by=['item_id'], how=stats.RollingMean(30)),
-    
+
     feature_extraction.TargetAgg(by=['item_id'], how=stats.Shift(30) | stats.RollingMean(1)),
     feature_extraction.TargetAgg(by=['item_id'], how=stats.Shift(29) | stats.RollingMean(1)),
     feature_extraction.TargetAgg(by=['item_id'], how=stats.Shift(28) | stats.RollingMean(1)),
     feature_extraction.TargetAgg(by=['item_id'], how=stats.Shift(27) | stats.RollingMean(1)),
     feature_extraction.TargetAgg(by=['item_id'], how=stats.Shift(26) | stats.RollingMean(1)),
-    
+
     feature_extraction.TargetAgg(by=['wday'], how=stats.RollingMean(1)),
     feature_extraction.TargetAgg(by=['wday'], how=stats.RollingMean(3)),
     feature_extraction.TargetAgg(by=['wday'], how=stats.RollingMean(7)),
@@ -202,13 +202,13 @@ list_model = []
 X_y = stream.iter_csv('./data/sample_submission.csv', target_name='F8')
 
 for x, y in tqdm.tqdm(X_y, position=0):
-    
+
     item_id = '_'.join(x['id'].split('_')[:5])
 
     if item_id not in list_model:
 
         list_model.append(item_id)
-        
+
 dict_knn = {item_id: copy.deepcopy(knn) for item_id in tqdm.tqdm(list_model, position=0)}
 dict_lm  = {item_id: copy.deepcopy(lm) for item_id in tqdm.tqdm(list_model, position=0)}
 ```
@@ -230,29 +230,29 @@ metric_knn = collections.defaultdict(lambda: metrics.MAE())
 metric_lm  = collections.defaultdict(lambda: metrics.MAE())
 
 for i, (x, y) in enumerate(bar):
-    
+
     # Extract item id
     item_id  = '_'.join(x['id'].split('_')[:5])
-    
+
     # KNN
-    
+
     # Evaluate performance of KNN
     y_pred_knn = dict_knn[f'{item_id}'].predict_one(x)
-    
+
     # Update metric of KNN
     metric_knn[f'{item_id}'].update(y, y_pred_knn)
-    
+
     # Fit KNN
     dict_knn[f'{item_id}'].fit_one(x=x, y=y)
-    
+
     # Linear Model
-    
+
     # Evaluate performance of linear model
     y_pred_lm  = dict_lm[f'{item_id}'].predict_one(x)
-    
+
     # Update metric of linear model
     metric_lm[f'{item_id}'].update(y, y_pred_lm)
-    
+
     # Train linear model for 10 epochs on each training example
     for _ in range(10):
         dict_lm[f'{item_id}'].fit_one(x=x, y=y)
@@ -264,17 +264,17 @@ I select the best model among the knn and the linear model for the 30490 product
 models = {}
 
 for item_id in tqdm.tqdm(scores_knn.keys()):
-    
+
     score_knn = scores_knn[item_id]
-    
+
     score_lm  = scores_lm[item_id]
-    
+
     if score_knn < score_lm:
         models[item_id] = dict_knn[item_id]
-        
+
     else:
         models[item_id] = dict_lm[item_id]
-        
+
 # Save selected models:
 with open('models.dill', 'wb') as file:
     dill.dump(models, file)
@@ -287,7 +287,7 @@ with open('models.dill', 'wb') as file:
 
 **[Chantilly](https://github.com/creme-ml/chantilly) is a project that aims to ease train Creme models when they are deployed. Chantilly is a minimalist API based on the Flask framework.** Chantilly allows to make predictions, train models and measure model performance in real time. It gives access to a dashboard.
 
-Chantilly is a library currently under development. For various reasons, I choose to extract the files from Chantilly that I'm interested in to realize this project. I chose to deploy my API with [Digital Ocean](https://www.digitalocean.com). You will be able to find the whole architecture of my API [here](https://github.com/raphaelsty/M5-Forecasting-Accuracy). 
+Chantilly is a library currently under development. For various reasons, I choose to extract the files from Chantilly that I'm interested in to realize this project. I chose to deploy my API with [Digital Ocean](https://www.digitalocean.com). You will be able to find the whole architecture of my API [here](https://github.com/raphaelsty/M5-Forecasting-Accuracy).
 
 
 To deploy my API, I followed the following steps:
@@ -323,7 +323,7 @@ I initialize my API with flavor regression (see Chantilly tutorial):
 
 ```python
 import requests
-url = 'http://159.89.191.92:8080'
+url = 'http://creme-ml.com'
 ```
 
 ```python
@@ -373,6 +373,6 @@ Feel free to visit the [Chantilly](https://github.com/creme-ml/chantilly) github
 
 --
 
-Thank you for reading me. 
+Thank you for reading me.
 
 Raphaël Sourty.
