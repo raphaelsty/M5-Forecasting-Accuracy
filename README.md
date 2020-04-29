@@ -2,7 +2,7 @@
 
 Deploying and maintaining machine learning algorithms in a **production** environment is not an easy task. The **drift** of data over the time tends to degrade the performance of the algorithms because the models are static. Data Scientist **re-train models from scratch** to update them. This task is tedious and monopolizes highly qualified human resources. 
 
-**I would like to present a solution to these problems**. I will use online learning and the open-source **[Creme](https://github.com/creme)** library (I am a core developer of Creme) to overcome the difficulties of deploying a machine learning model in production. 
+**I would like to present a solution to these problems**. I will use online learning and the open-source **[Creme](https://github.com/creme-ml/creme)** library (I am a core developer of Creme) to overcome the difficulties of deploying a machine learning model in production. 
 
 I will illustrate my point with data from the **[M5-Forecasting-Accuracy kaggle competition](https://www.kaggle.com/c/m5-forecasting-accuracy/)** which is well suited to the use case of Creme. **The objective of the M5-Forecasting-Accuracy competition is to estimate the daily sales of 30490 products for the next 28 days.**
 
