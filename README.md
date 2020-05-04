@@ -10,7 +10,7 @@ My goal is not to develop a competitive model, but to show the simplicity of an 
 
 First of all, I would like to share with you the deployment process I follow to deploy a machine learning algorithm such as LightGBM or scikit-learn models for a task similar to the M5-Forecasting-Accuracy competition.
 
-I will then compare the deployment of batch learning algorithms to the deployment of online learning algorithms. To do so, I will use the Creme and Chantilly libraries. I'll walk you through the entire process and deploy my [API](http://159.89.38.125:8080) to predict the targets of the Kaggle competition M5-Forecasting-Accuracy. 
+I will then compare the deployment of batch learning algorithms to the deployment of online learning algorithms. To do so, I will use the Creme and Chantilly libraries. I'll walk you through the entire process and deploy my [API](http://159.89.43.61:8080) to predict the targets of the Kaggle competition M5-Forecasting-Accuracy. 
 
 [Max Halford](https://maxhalford.github.io) is the main developer of Creme and he's the one who initiated the project, he did a blog post **[here](https://towardsdatascience.com/machine-learning-for-streaming-data-with-creme-dacf5fb469df)**. This is a good introduction to the philosophy of online learning and especially Creme philosophy. Feel free to have a look at it if you are interested in the subject. 
 
@@ -340,11 +340,10 @@ I chose to deploy my API with [Digital Ocean](https://www.digitalocean.com). To 
 
 - Tutorial to install Anaconda on my server [here](https://www.digitalocean.com/community/tutorials/how-to-install-the-anaconda-python-distribution-on-ubuntu-16-04)
 
+- I create the environment dedicated to python ``conda create --name kaggle python=3.7.1``
+
 
 - Updating the package list using the following command ``sudo apt update``
-
-
-- Installation of pip ``sudo apt install python3-pip``
 
 
 - Installation of git ``sudo apt install git``
@@ -372,7 +371,7 @@ I initialize my API with flavor regression (see Chantilly tutorial):
 
 ```python
 import requests
-url = 'http://159.89.38.125:8080'
+url = 'http://159.89.43.61:8080'
 ```
 
 ```python
@@ -416,7 +415,7 @@ r = requests.post(f'{url}/api/learn', json={
 
 #### Chantilly dashboard
 
-You can consult my dashboard [here](http://159.89.191.92:8080) which is updated in real time. Chantilly allows me to visualize the performance of my models in live when sending new data.
+You can consult my dashboard [here](http://159.89.43.61:8080) which is updated in real time. Chantilly allows me to visualize the performance of my models in live when sending new data.
 
 ![](static/dashboard.png)
 
