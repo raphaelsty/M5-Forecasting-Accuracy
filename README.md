@@ -372,7 +372,7 @@ I initialize my API with flavor regression (see Chantilly tutorial):
 
 ```python
 import requests
-url = 'http://159.89.38.125:8080'
+url = 'http://159.89.191.92:8080'
 ```
 
 ```python
