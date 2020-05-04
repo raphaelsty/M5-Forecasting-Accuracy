@@ -362,8 +362,8 @@ I chose to deploy my API with [Digital Ocean](https://www.digitalocean.com). To 
 - Allow reading on port 8080 to be able to request my API ``sudo ufw allow 8080``
 
 
-- I went to the repository M5-Forecasting-Accuracy I cloned and ran the following command to start my API:
-``waitress-serve --call 'chantilly:create_app'``.
+- I went to the repository M5-Forecasting-Accuracy I cloned and ran the following command to start my API with 30 threads:
+``waitress-serve --threads 30 --call 'chantilly:create_app'``.
 
 
 That's it.
