@@ -10,7 +10,7 @@ My goal is not to develop a competitive model, but to show the simplicity of an 
 
 First of all, I would like to share with you the deployment process I follow to deploy a machine learning algorithm such as LightGBM or scikit-learn models for a task similar to the M5-Forecasting-Accuracy competition.
 
-I will then compare the deployment of batch learning algorithms to the deployment of online learning algorithms. To do so, I will use the Creme and Chantilly libraries. I'll walk you through the entire process and deploy my [API](http://159.89.191.92:8080) to predict the targets of the Kaggle competition M5-Forecasting-Accuracy. 
+I will then compare the deployment of batch learning algorithms to the deployment of online learning algorithms. To do so, I will use the Creme and Chantilly libraries. I'll walk you through the entire process and deploy my [API](http://159.89.38.125:8080) to predict the targets of the Kaggle competition M5-Forecasting-Accuracy. 
 
 [Max Halford](https://maxhalford.github.io) is the main developer of Creme and he's the one who initiated the project, he did a blog post **[here](https://towardsdatascience.com/machine-learning-for-streaming-data-with-creme-dacf5fb469df)**. This is a good introduction to the philosophy of online learning and especially Creme philosophy. Feel free to have a look at it if you are interested in the subject. 
 
@@ -372,7 +372,7 @@ I initialize my API with flavor regression (see Chantilly tutorial):
 
 ```python
 import requests
-url = 'http://159.89.191.92:8080'
+url = 'http://159.89.38.125:8080'
 ```
 
 ```python
