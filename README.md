@@ -425,7 +425,7 @@ Feel free to visit the [Chantilly](https://github.com/creme-ml/chantilly) github
 
 #### Kaggle
 
-The M5-Forecasting-Accuracy kaggle competition uses the weighted root mean squared scaled error (WRMSSE) to measure model performance. My models gave me a score of ``0.88113``. The maintainability and interpretability of my solution takes precedence over its competitiveness. L'écart entre 
+The M5-Forecasting-Accuracy kaggle competition uses the weighted root mean squared scaled error (WRMSSE) to measure model performance. My models gave me a score of ``0.88113``. The maintainability and interpretability of my solution takes precedence over its competitiveness.
 
 --
 
