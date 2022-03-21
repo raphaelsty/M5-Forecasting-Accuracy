@@ -1,6 +1,6 @@
 tqdm==4.36.1
 dill==0.3.1.1
 Flask==1.1.1
-waitress==1.4.3
+waitress==2.1.1
 -e git://github.com/creme-ml/creme.git#egg=creme
 -e git://github.com/creme-ml/chantilly.git#egg=chantilly
